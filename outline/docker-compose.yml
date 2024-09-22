@@ -1,11 +1,18 @@
 version: "3.2"
+
+networks:
+  bridge:
+    external: true
+
 services:
 
   outline:
     image: docker.getoutline.com/outlinewiki/outline:latest
-    env_file: ./docker.env
-    ports:
-      - "3000:3000"
+     env_file: ./outline.env
+    networks:
+      - bridge
+    expose:
+      - 3000
     volumes:
       - storage-data:/var/lib/outline/data
     depends_on:
@@ -14,7 +21,7 @@ services:
 
   redis:
     image: redis
-    env_file: ./docker.env
+    env_file: ./outline.env
     ports:
       - "6379:6379"
     volumes:
@@ -28,11 +35,11 @@ services:
 
   postgres:
     image: postgres
-    env_file: ./docker.env
-    ports:
-      - "5432:5432"
+    env_file: ./outline.env
     volumes:
       - database-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-d", "outline", "-U", "user"]
       interval: 30s
@@ -43,30 +50,7 @@ services:
       POSTGRES_PASSWORD: 'pass'
       POSTGRES_DB: 'outline'
 
-  https-portal:
-    image: steveltn/https-portal
-    env_file: ./docker.env
-    ports:
-      - '80:80'
-      - '443:443'
-    links:
-      - outline
-    restart: always
-    volumes:
-      - https-portal-data:/var/lib/https-portal
-    healthcheck:
-      test: ["CMD", "service", "nginx", "status"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    environment:
-      DOMAINS: 'docs.mycompany.com -> http://outline:3000'
-      STAGE: 'production'
-      WEBSOCKET: 'true'
-      CLIENT_MAX_BODY_SIZE: '0'
-
 volumes:
-  https-portal-data:
   storage-data:
   database-data:
 
